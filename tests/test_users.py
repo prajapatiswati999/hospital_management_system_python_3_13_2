@@ -1,16 +1,15 @@
 import pytest 
-from database.models.tables.users import User 
-from managers.users import create_user, get_user, delete_user 
+from hospital_management_system_python_3_13_2.managers.users import create_user, get_user, delete_user 
+from hospital_management_system_python_3_13_2.database.models.tables.users import User 
 import logging 
-import traceback 
 # Configure logging 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__) 
 @pytest.fixture 
 def user_data(): 
     return { 
-        "username": "test_user", 
-        "password": "password123", 
+        "username": "testuser", 
+        "password": "testpassword", 
         "first_name": "Test", 
         "last_name": "User", 
         "age": 30, 
@@ -18,29 +17,34 @@ def user_data():
         "user_type": "PATIENT" 
     } 
 def test_create_user(user_data): 
+    logger.info("Testing user creation with data: %s", user_data) 
     try: 
-        logger.info("Testing user creation with data: %s", user_data) 
         create_user(**user_data) 
-        user = get_user(user_data["username"], user_data["password"]) 
-        assert user is not None, "User should be created and retrievable" 
-        assert user.username == user_data["username"], "Usernames should match" 
-        logger.info("User creation test passed.") 
+        user = User.get_by_username(user_data['username']) 
+        assert user is not None 
+        assert user.username == user_data['username'] 
+        logger.info("User creation test passed for username: %s", user_data['username']) 
     except Exception as e: 
-        logger.error("Error in test_create_user: %s", e) 
-        logger.debug(traceback.format_exc()) 
+        logger.error("User creation test failed: %s", e, exc_info=True) 
+        raise 
+def test_get_user(user_data): 
+    logger.info("Testing user retrieval with username: %s", user_data['username']) 
+    try: 
+        user = get_user(user_data['username'], user_data['password']) 
+        assert user is not None 
+        assert user.username == user_data['username'] 
+        logger.info("User retrieval test passed for username: %s", user_data['username']) 
+    except Exception as e: 
+        logger.error("User retrieval test failed: %s", e, exc_info=True) 
         raise 
 def test_delete_user(user_data): 
+    logger.info("Testing user deletion with username: %s", user_data['username']) 
     try: 
-        logger.info("Testing user deletion for user: %s", user_data["username"]) 
-        user = get_user(user_data["username"], user_data["password"]) 
-        if user is None: 
-            logger.info("User not found, creating user for deletion test.") 
-            create_user(**user_data) 
-            user = get_user(user_data["username"], user_data["password"]) 
+        user = User.get_by_username(user_data['username']) 
         delete_user(user.idx) 
-        assert get_user(user_data["username"], user_data["password"]) is None, "User should be deleted" 
-        logger.info("User deletion test passed.") 
+        user = User.get_by_username(user_data['username']) 
+        assert user is None 
+        logger.info("User deletion test passed for username: %s", user_data['username']) 
     except Exception as e: 
-        logger.error("Error in test_delete_user: %s", e) 
-        logger.debug(traceback.format_exc()) 
-        raise
+        logger.error("User deletion test failed: %s", e, exc_info=True) 
+        raise 

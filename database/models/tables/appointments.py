@@ -1,10 +1,8 @@
 from dataclasses import dataclass, field 
 from datetime import date 
-from typing import Optional 
 from uuid import uuid4 
-from database.db import db 
+from  ...db import db
 import logging 
-import traceback 
 # Configure logging 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__) 
@@ -23,51 +21,25 @@ class Appointment(db.Model):
                               lazy=True, single_parent=True, foreign_keys='Appointment.patient_id') 
     @classmethod 
     def get(cls, pk): 
-        try: 
-            logger.info("Retrieving appointment with idx: %s", pk) 
-            appointment = cls.query.get(pk) 
-            if appointment: 
-                logger.info("Appointment retrieved successfully.") 
-            else: 
-                logger.warning("Appointment not found.") 
-            return appointment 
-        except Exception as e: 
-            logger.error("Error retrieving appointment: %s", e) 
-            logger.debug(traceback.format_exc()) 
-            raise 
+        logger.info("Fetching appointment with ID: %s", pk) 
+        return cls.query.get(pk) 
     @classmethod 
     def get_by_doctor_id(cls, idx: str): 
-        try: 
-            logger.info("Retrieving appointments for doctor_id: %s", idx) 
-            appointments = cls.query.filter_by(doctor_id=idx).all() 
-            logger.info("Appointments retrieved successfully.") 
-            return appointments 
-        except Exception as e: 
-            logger.error("Error retrieving appointments: %s", e) 
-            logger.debug(traceback.format_exc()) 
-            raise 
+        logger.info("Fetching appointments for doctor ID: %s", idx) 
+        appointment = cls.query.filter_by(doctor_id=idx).all() 
+        return appointment 
     @classmethod 
     def get_by_patient_id(cls, idx: str): 
-        try: 
-            logger.info("Retrieving appointments for patient_id: %s", idx) 
-            appointments = cls.query.filter_by(patient_id=idx).all() 
-            logger.info("Appointments retrieved successfully.") 
-            return appointments 
-        except Exception as e: 
-            logger.error("Error retrieving appointments: %s", e) 
-            logger.debug(traceback.format_exc()) 
-            raise 
+        logger.info("Fetching appointments for patient ID: %s", idx) 
+        appointments = cls.query.filter_by(patient_id=idx).all() 
+        return appointments 
     @classmethod 
     def create(cls, **kwargs): 
-        try: 
-            logger.info("Creating appointment with data: %s", kwargs) 
-            instance = cls(**kwargs) 
-            return instance.save() 
-        except Exception as e: 
-            logger.error("Error creating appointment: %s", e) 
-            logger.debug(traceback.format_exc()) 
-            raise 
+        logger.info("Creating new appointment with data: %s", kwargs) 
+        instance = cls(**kwargs) 
+        return instance.save() 
     def save(self, commit=True): 
+        logger.info("Saving appointment with ID: %s", self.idx) 
         db.session.add(self) 
         if commit: 
             try: 
@@ -75,20 +47,18 @@ class Appointment(db.Model):
                 logger.info("Appointment saved successfully.") 
             except Exception as e: 
                 db.session.rollback() 
-                logger.error("Error saving appointment: %s", e) 
-                logger.debug(traceback.format_exc()) 
+                logger.error("Error saving appointment: %s", e, exc_info=True) 
                 raise 
         return self 
     def delete(self, commit=True): 
-        try: 
-            logger.info("Deleting appointment with idx: %s", self.idx) 
-            db.session.delete(self) 
-            if commit: 
+        logger.info("Deleting appointment with ID: %s", self.idx) 
+        db.session.delete(self) 
+        if commit: 
+            try: 
                 db.session.commit() 
                 logger.info("Appointment deleted successfully.") 
-            return True 
-        except Exception as e: 
-            db.session.rollback() 
-            logger.error("Error deleting appointment: %s", e) 
-            logger.debug(traceback.format_exc()) 
-            raise
+            except Exception as e: 
+                db.session.rollback() 
+                logger.error("Error deleting appointment: %s", e, exc_info=True) 
+                raise 
+        return self
